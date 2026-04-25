@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotesAI - How it Works</title>
+    <!-- Premium Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="landing-body">
+    
+    <div class="glow glow-1" style="background: var(--secondary);"></div>
+
+    <nav class="landing-nav max-w">
+        <div class="landing-logo cursor-pointer" onclick="window.location.href='index.html'">NotesAI <span style="font-size: 1.2rem">✨</span></div>
+        <div class="landing-links">
+            <a href="about.html" class="nav-ghost">About</a>
+            <a href="process.html" class="nav-ghost" style="color: var(--text-primary); font-weight: 600;">How it Works</a>
+            <a href="login.html" class="nav-ghost" style="margin-left: 1rem;">Sign In</a>
+            <a href="signup.html" class="btn btn-primary">Start for free</a>
+        </div>
+    </nav>
+    
+    <div class="hero-container max-w" style="margin-top: 4rem; text-align: left; align-items: flex-start; max-width: 900px;">
+        <h1 class="hero-title slide-up" style="font-size: 3.5rem;">
+            The Intelligence Pipeline.<br>
+            <span style="color: var(--text-secondary); font-size: 2.2rem; font-weight: 500;">How NotesAI processes lectures.</span>
+        </h1>
+        
+        <div class="slide-up delay-1" style="display: flex; flex-direction: column; gap: 2rem; margin-top: 3rem; width: 100%;">
+            
+            <div class="solid-panel" style="padding: 2rem; display: flex; gap: 2rem; align-items: flex-start;">
+                <div style="font-size: 2rem; font-family: var(--font-heading); color: var(--primary); font-weight: 800;">01</div>
+                <div>
+                    <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;">Transcript Extraction</h3>
+                    <p>When you input a YouTube link, our backend immediately interfaces with the video to extract its closed-captioning data natively. We parse thousands of words of spoken content in milliseconds.</p>
+                </div>
+            </div>
+
+            <div class="solid-panel" style="padding: 2rem; display: flex; gap: 2rem; align-items: flex-start; margin-left: 2rem;">
+                <div style="font-size: 2rem; font-family: var(--font-heading); color: var(--secondary); font-weight: 800;">02</div>
+                <div>
+                    <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;">NLP Deep Processing</h3>
+                    <p>The raw transcript isn't useful on its own. We run it through heavy NLTK pipelines to tokenize sentences, remove conversational filler ("um", "like"), and use neural models (LSTMs) alongside TF-IDF Vectorization to score the most important lines in the video.</p>
+                </div>
+            </div>
+
+            <div class="solid-panel" style="padding: 2rem; display: flex; gap: 2rem; align-items: flex-start; margin-left: 4rem;">
+                <div style="font-size: 2rem; font-family: var(--font-heading); color: var(--accent); font-weight: 800;">03</div>
+                <div>
+                    <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;">Semantic Categorization</h3>
+                    <p>The distilled, high-value sentences are then mapped. Definitions go to 'Summary', examples to 'Key Learnings', and core formulas to 'Concepts'. The output is sent back to your Dashboard ready for downloading or Flashcard-studying.</p>
+                </div>
+            </div>
+
+        </div>
+        
+    </div>
+
+</body>
+</html>

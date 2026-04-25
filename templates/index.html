@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotesAI - The Intelligent Learning OS</title>
+    <!-- Premium Fonts Setup -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="landing-body">
+    
+    <!-- Background glow elements -->
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <nav class="landing-nav max-w">
+        <div class="landing-logo">NotesAI <span style="font-size: 1.2rem">✨</span></div>
+        <div class="landing-links">
+            <a href="about.html" class="nav-ghost">About</a>
+            <a href="process.html" class="nav-ghost">How it Works</a>
+            <a href="login.html" class="nav-ghost" style="margin-left: 1rem;">Sign In</a>
+            <a href="signup.html" class="btn btn-primary">Start for free</a>
+        </div>
+    </nav>
+    
+    <div class="hero-container max-w">
+        <div class="pill-badge slide-up">v2.0 is now live 🚀</div>
+        
+        <h1 class="hero-title slide-up delay-1">
+            Supercharge your studies with<br>
+            <span class="gradient-text">AI-Powered Notes</span>
+        </h1>
+        
+        <p class="hero-subtitle slide-up delay-2">
+            Paste any complex lecture video link. NotesAI instantly extracts the core concepts, 
+            categorizes the topics, and builds you highly-structured study material.
+        </p>
+        
+        <div class="hero-cta-group slide-up delay-3">
+            <a href="signup.html" class="btn btn-primary btn-large shadow-glow">Start Learning Faster</a>
+            <a href="login.html" class="btn btn-outline btn-large">View Example Dashboard</a>
+        </div>
+        
+        <!-- Mock UI App Window -->
+        <div class="hero-visual glass-panel slide-up delay-4">
+            <div class="visual-header">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <div class="url-bar">youtube.com/watch?v=intro-to-os</div>
+            </div>
+            <div class="visual-body">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-line"></div>
+                <div class="skeleton skeleton-line short"></div>
+                
+                <div class="visual-grid mt-4">
+                    <div class="visual-card">
+                        <div style="font-weight: 600; color: var(--primary); margin-bottom: 8px;">📚 Lecture Summary</div>
+                        <div class="skeleton skeleton-line mini"></div>
+                        <div class="skeleton skeleton-line mini w-80"></div>
+                    </div>
+                    <div class="visual-card">
+                        <div style="font-weight: 600; color: var(--secondary); margin-bottom: 8px;">🧠 Key Learnings</div>
+                        <div class="skeleton skeleton-line mini"></div>
+                        <div class="skeleton skeleton-line mini"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- We need the router check here just in case they are already logged in -->
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotesAI - Welcome Back</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="auth-page">
+
+    <!-- Background glow elements -->
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2" style="background: var(--accent);"></div>
+
+    <div id="toast" class="toast"></div>
+    
+    <div class="auth-layout">
+        <div class="auth-card solid-panel slide-up">
+            <div class="logo">✨</div>
+            <h2>Welcome Back</h2>
+            <p>Log in to access your intelligence dashboard</p>
+            <form onsubmit="event.preventDefault(); loginUser();">
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">✉️</span>
+                        <input type="email" id="email" required placeholder="student@university.edu" />
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" id="password" required placeholder="••••••••" />
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 1.2rem;">Sign In to Workspace</button>
+                <div class="auth-footer">
+                    New student? <a href="signup.html">Create an Account</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

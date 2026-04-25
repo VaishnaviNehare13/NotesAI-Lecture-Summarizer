@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotesAI - Start Growing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="auth-page">
+
+    <!-- Background glow elements -->
+    <div class="glow glow-1" style="background: var(--secondary);"></div>
+    <div class="glow glow-2"></div>
+
+    <div id="toast" class="toast"></div>
+    <div class="auth-layout">
+        <div class="auth-card solid-panel slide-up">
+            <div class="logo">🚀</div>
+            <h2>Create Account</h2>
+            <p>Join thousands of students learning smarter</p>
+            <form onsubmit="event.preventDefault(); signupUser();">
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">👤</span>
+                        <input type="text" id="name" required placeholder="John Doe" />
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">✉️</span>
+                        <input type="email" id="email" required placeholder="student@university.edu" />
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔑</span>
+                        <input type="password" id="password" minlength="6" required placeholder="••••••••" />
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 1.2rem;">Start Learning Free</button>
+                <div class="auth-footer">
+                    Already enrolled? <a href="login.html">Sign In</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
