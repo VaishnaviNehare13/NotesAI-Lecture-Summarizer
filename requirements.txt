@@ -1,20 +1,8 @@
-# Web framework & Deployment
 Flask==3.0.3
-Flask-CORS==5.0.1
 gunicorn==23.0.0
-
-# API & Environment
-google-generativeai
-python-dotenv==1.0.1
-requests==2.32.3
-
-# Utilities
-fpdf2
-youtube-transcript-api
-yt-dlp
-
-# Data & Scikit-Learn (Required for vectorizer.pkl)
 numpy==1.26.4
 scikit-learn==1.4.2
+pandas==2.2.2
 joblib==1.4.2
-nltk
+python-dotenv==1.0.1
+requests==2.32.3
