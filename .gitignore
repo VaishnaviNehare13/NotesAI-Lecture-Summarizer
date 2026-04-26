@@ -1,0 +1,14 @@
+# Virtual environments
+.venv/
+venv/
+__pycache__/
+
+# ML Models and Binaries
+*.pth
+*.pkl
+bin/ffmpeg.exe
+audio.webm
+uploads/
+
+# DB
+notes.db

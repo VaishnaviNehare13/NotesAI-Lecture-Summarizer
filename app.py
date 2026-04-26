@@ -2,7 +2,12 @@ import os
 import sys
 import tempfile
 import yt_dlp
-import whisper
+try:
+    import whisper
+    WHISPER_AVAILABLE = True
+except ImportError:
+    WHISPER_AVAILABLE = False
+    whisper = None
 from flask import Flask, request, jsonify, render_template, send_file
 import io
 from fpdf import FPDF

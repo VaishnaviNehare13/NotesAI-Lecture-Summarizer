@@ -1,14 +1,27 @@
 import os
 import re
 import pickle
-import whisper
-import torch
-import torch.nn as nn
 import nltk
 from nltk.tokenize import sent_tokenize
 import google.generativeai as genai
 from dotenv import load_dotenv
 import json
+
+try:
+    import whisper
+    WHISPER_AVAILABLE = True
+except ImportError:
+    WHISPER_AVAILABLE = False
+    whisper = None
+
+try:
+    import torch
+    import torch.nn as nn
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    torch = None
+    nn = None
 
 load_dotenv()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -25,20 +38,24 @@ except LookupError:
 
 print("Loading models...")
 
-try:
-    whisper_model = whisper.load_model("base")
-except Exception as e:
-    print(f"Error loading whisper model: {e}")
-    whisper_model = None
+whisper_model = None
+if WHISPER_AVAILABLE:
+    try:
+        whisper_model = whisper.load_model("base")
+    except Exception as e:
+        print(f"Error loading whisper model: {e}")
 
-class SimpleModel(nn.Module):
-    def __init__(self, input_size=500):
-        super().__init__()
-        self.fc = nn.Linear(input_size, 1)
-        self.sigmoid = nn.Sigmoid()
+if TORCH_AVAILABLE:
+    class SimpleModel(nn.Module):
+        def __init__(self, input_size=500):
+            super().__init__()
+            self.fc = nn.Linear(input_size, 1)
+            self.sigmoid = nn.Sigmoid()
 
-    def forward(self, x):
-        return self.sigmoid(self.fc(x))
+        def forward(self, x):
+            return self.sigmoid(self.fc(x))
+else:
+    SimpleModel = None
 
 try:
     # We must construct an absolute path to the vectorizer because this script 
@@ -50,14 +67,16 @@ try:
 except Exception:
     vectorizer = None
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-try:
-    lstm_model = SimpleModel(input_size=500).to(device)
-    lstm_path = os.path.join(base_dir, "lstm_model.pth")
-    lstm_model.load_state_dict(torch.load(lstm_path, map_location=device))
-    lstm_model.eval()
-except Exception:
-    lstm_model = None
+lstm_model = None
+if TORCH_AVAILABLE and SimpleModel:
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    try:
+        lstm_model = SimpleModel(input_size=500).to(device)
+        lstm_path = os.path.join(base_dir, "lstm_model.pth")
+        lstm_model.load_state_dict(torch.load(lstm_path, map_location=device))
+        lstm_model.eval()
+    except Exception as e:
+        print(f"Error loading LSTM model: {e}")
 
 def clean_transcript(text):
     """Robust transcript cleaning to remove hallucinations and filler"""
