@@ -296,3 +296,74 @@ def generate_notes_from_text(transcription):
     except Exception as e:
         print(f"[DEBUG] Gemini generation failed: {e}. Falling back to LSTM.")
         return generate_notes_with_lstm(transcription)
+
+def generate_notes_from_audio(file_path):
+    if not GEMINI_API_KEY:
+        return {"error": "GEMINI_API_KEY is not set. Cannot transcribe audio without Gemini or local Whisper."}
+    
+    try:
+        print(f"[DEBUG] Uploading audio to Gemini API: {file_path}")
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        audio_file = genai.upload_file(path=file_path)
+        
+        prompt = """
+        Listen to this audio and generate concise academic study notes.
+        Extract concise bullet points. Avoid transcript dumping. Limit each array to 5-7 bullets of readable length.
+        Generate academically formatted notes.
+        
+        CRITICAL: For "important_concepts", extract ONLY domain-specific technical concepts or noun phrases relevant to the lecture topic (e.g., "Mutual Exclusion", "Deadlock", "Resource Allocation Graph"). Do NOT extract conversational words, verbs, or weak phrases like "means", "saying", "okay", or "example". Rank concepts by relevance, not raw frequency. Prefer noun phrases over single common words.
+
+        Return structured JSON with EXACTLY this format:
+        {
+          "summary": "overall summary string",
+          "key_learnings": ["bullet 1", "bullet 2"],
+          "important_concepts": ["technical concept 1", "technical concept 2"],
+          "key_points": ["bullet 1", "bullet 2"],
+          "conclusion": "overall conclusion string"
+        }
+        Respond ONLY with valid JSON. Do not include markdown code blocks like ```json ... ```. Just the raw JSON.
+        """
+        
+        response = model.generate_content([prompt, audio_file])
+        response_text = response.text.strip()
+        
+        # Clean potential markdown formatting
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+            
+        json_data = json.loads(response_text.strip())
+        
+        # Parse JSON response and map each section into corresponding frontend cards
+        summary = json_data.get("summary", "")
+        key_learnings = json_data.get("key_learnings", [])
+        important_concepts = json_data.get("important_concepts", [])
+        key_points = json_data.get("key_points", [])
+        conclusion = json_data.get("conclusion", "")
+        
+        # Fallback if lists are returned as strings
+        if isinstance(key_learnings, str): key_learnings = [key_learnings]
+        if isinstance(important_concepts, str): important_concepts = [important_concepts]
+        if isinstance(key_points, str): key_points = [key_points]
+        if isinstance(summary, list): summary = " ".join(summary)
+        if isinstance(conclusion, list): conclusion = " ".join(conclusion)
+        
+        if not summary: summary = "No lecture summary could be extracted."
+        if not key_learnings: key_learnings = ["No key learnings detected."]
+        if not important_concepts: important_concepts = ["No important concepts identified."]
+        if not key_points: key_points = ["No key points detected."]
+                
+        print("[DEBUG] Gemini audio generation successful.")
+        return {
+            "summary": summary,
+            "key_learnings": key_learnings[:7],
+            "important_concepts": important_concepts[:7],
+            "key_points": key_points[:7],
+            "conclusion": conclusion
+        }
+    except Exception as e:
+        print(f"[ERROR] Gemini audio generation failed: {e}")
+        return {"error": str(e)}
