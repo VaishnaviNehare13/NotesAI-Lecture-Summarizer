@@ -226,7 +226,9 @@ def generate_notes_from_text(transcription):
         return generate_notes_with_lstm(transcription)
         
     try:
-        print("[DEBUG] Prompting Gemini API...")
+        # Truncate transcript to save tokens (approx 7500 tokens)
+        transcription = transcription[:30000]
+        print(f"[DEBUG] Prompting Gemini API... Transcript length: {len(transcription)} chars.")
         model = genai.GenerativeModel('gemini-2.0-flash')
         prompt = """
         Convert this lecture transcript into concise academic study notes.
@@ -249,7 +251,33 @@ def generate_notes_from_text(transcription):
         Transcript:
         """ + transcription
         
-        response = model.generate_content(prompt)
+        import time
+        max_retries = 3
+        backoff_factors = [2, 4, 8]
+        response = None
+        
+        for attempt in range(max_retries + 1):
+            try:
+                response = model.generate_content(prompt)
+                print("[DEBUG] Gemini generation completed with status code: 200 OK.")
+                break
+            except Exception as api_err:
+                err_str = str(api_err)
+                if "429" in err_str or "Quota" in err_str or "ResourceExhausted" in err_str:
+                    if attempt < max_retries:
+                        wait_time = backoff_factors[attempt]
+                        print(f"[WARNING] Gemini API rate limit (429) hit. Retrying in {wait_time} seconds...")
+                        time.sleep(wait_time)
+                    else:
+                        print(f"[ERROR] Gemini API rate limit exhausted after {max_retries} retries.")
+                        return {"error": "API rate limit reached, please wait and retry."}
+                else:
+                    print(f"[ERROR] Unhandled Gemini API exception: {api_err}")
+                    raise api_err
+                    
+        if not response:
+            raise Exception("No response received from Gemini.")
+            
         return _parse_gemini_json_response(response.text.strip())
         
     except Exception as e:
@@ -340,8 +368,35 @@ def generate_notes_from_file(file_path):
         Respond ONLY with valid JSON. Do not include markdown code blocks like ```json ... ```. Just the raw JSON.
         """
         
-        response = model.generate_content([prompt, uploaded_file])
+        max_retries = 3
+        backoff_factors = [2, 4, 8]
+        response = None
         
+        for attempt in range(max_retries + 1):
+            try:
+                response = model.generate_content([prompt, uploaded_file])
+                print("[DEBUG] Gemini generation completed with status code: 200 OK.")
+                break
+            except Exception as api_err:
+                err_str = str(api_err)
+                if "429" in err_str or "Quota" in err_str or "ResourceExhausted" in err_str:
+                    if attempt < max_retries:
+                        wait_time = backoff_factors[attempt]
+                        print(f"[WARNING] Gemini API rate limit (429) hit. Retrying in {wait_time} seconds...")
+                        time.sleep(wait_time)
+                    else:
+                        print(f"[ERROR] Gemini API rate limit exhausted after {max_retries} retries.")
+                        try:
+                            genai.delete_file(uploaded_file.name)
+                        except:
+                            pass
+                        return {"error": "API rate limit reached, please wait and retry."}
+                else:
+                    print(f"[ERROR] Unhandled Gemini API exception: {api_err}")
+                    raise api_err
+                    
+        if not response:
+            raise Exception("No response received from Gemini.")
         try:
             genai.delete_file(uploaded_file.name)
         except Exception as cleanup_err:

@@ -52,27 +52,28 @@ def extract_notes_from_youtube_audio(url):
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             ydl_opts = {
-                'format': 'bestaudio/best',
+                "format": "bestaudio/best",
+                "quiet": True,
+                "noplaylist": True,
+                "extract_flat": False,
+                "nocheckcertificate": True,
                 'outtmpl': os.path.join(tmpdir, '%(id)s.%(ext)s'),
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }],
-                'quiet': True,
                 'no_warnings': True
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
-                audio_file = os.path.join(tmpdir, f"{info['id']}.mp3")
+                audio_file = os.path.join(tmpdir, f"{info['id']}.{info['ext']}")
                 
                 if os.path.exists(audio_file):
+                    print(f"[DEBUG] yt-dlp native audio downloaded successfully without ffmpeg: {audio_file}")
                     result = generate_notes_from_file(audio_file)
                     return result
                 else:
                     print(f"[ERROR] yt-dlp downloaded audio but file missing: {audio_file}")
     except Exception as e:
+        import traceback
         print(f"[ERROR] yt-dlp / gemini fallback failed: {e}")
+        print(f"[DEBUG] {traceback.format_exc()}")
     return None
 
 def get_text_from_video(url):
@@ -323,18 +324,37 @@ def upload_video():
             
         print(f"[DEBUG] Received upload video request: {file.filename}")
         
-        # Save file explicitly to uploads directory
-        os.makedirs("uploads", exist_ok=True)
+        # Validate format
+        if not file.filename.lower().endswith(('.mp4', '.mp3', '.m4a', '.wav')):
+            return jsonify({"success": False, "error": "Invalid file format. Please upload an mp4, mp3, m4a, or wav file."}), 200
+        
+        # Save file explicitly to OS native temp directory
+        import tempfile
+        tmp_dir = tempfile.gettempdir()
         from werkzeug.utils import secure_filename
         filename = secure_filename(file.filename)
         if not filename:
-            filename = "uploaded_video.mp4"
-        tmp_path = os.path.join("uploads", filename)
-        
+            filename = "uploaded_media.mp4"
+            
+        tmp_path = os.path.join(tmp_dir, filename)
+        print(f"[DEBUG] Saving uploaded file to {tmp_path}")
         file.save(tmp_path)
             
-        # Extract notes using Gemini
-        notes_result = generate_notes_from_file(tmp_path)
+        # 4 & 5. Verify Whisper model loads before transcription, auto-load if None
+        global whisper_model
+        if whisper_model is None:
+            print("[DEBUG] Whisper model is None. Attempting to auto-load 'base' model...")
+            try:
+                import whisper
+                whisper_model = whisper.load_model("base")
+                print("[DEBUG] Whisper model loaded successfully.")
+            except Exception as load_err:
+                return jsonify({"success": False, "error": f"Failed to load transcription model: {load_err}"}), 200
+
+        print("[DEBUG] Starting Whisper transcription...")
+        result = whisper_model.transcribe(tmp_path)
+        transcription = result.get("text", "")
+        print("[DEBUG] Transcription complete.")
         
         # Cleanup file after processing
         if os.path.exists(tmp_path):
@@ -344,6 +364,13 @@ def upload_video():
                 pass
             tmp_path = None
             
+        print(f"[DEBUG] Transcript extracted. Length: {len(transcription)}")
+        
+        if not transcription.strip():
+            raise Exception("No speech detected in the uploaded file.")
+            
+        # Generate notes
+        notes_result = generate_notes_from_text(transcription)
         if "error" in notes_result:
             raise Exception(notes_result["error"])
             
@@ -352,12 +379,16 @@ def upload_video():
         
     except Exception as e:
         if tmp_path and os.path.exists(tmp_path):
-            os.remove(tmp_path)
+            try:
+                os.remove(tmp_path)
+            except:
+                pass
         import traceback
-        print(traceback.format_exc())
+        print(f"[ERROR] Exception during upload processing: {e}")
+        print(f"[DEBUG] Traceback: {traceback.format_exc()}")
         return jsonify({
             "success": False,
-            "error": str(e),
+            "error": f"Extraction failed: {str(e)}",
             "details": traceback.format_exc()
         }), 200
 

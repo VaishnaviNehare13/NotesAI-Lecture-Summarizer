@@ -16,17 +16,15 @@ requests==2.32.3
 
 # Utilities
 fpdf2
-youtube-transcript-api
-yt-dlp
+youtube-transcript-api==0.6.2
+yt-dlp==2024.8.6
 
 # ML & NLP Core
 nltk
+openai-whisper
 
 # Data & Scikit-Learn
 numpy==1.24.4
 pandas==2.0.3
 scikit-learn==1.3.2
 joblib==1.3.2 
-
-yt-dlp==2024.8.6
-youtube-transcript-api
