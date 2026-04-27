@@ -281,9 +281,12 @@ def generate():
             if not extracted_data:
                 raise Exception("No captions found")
             
-            if isinstance(extracted_data, dict) and "summary" in extracted_data:
-                # Notes directly extracted from audio
-                result = extracted_data
+            if isinstance(extracted_data, dict):
+                if "error" in extracted_data:
+                    raise Exception(extracted_data["error"])
+                elif "summary" in extracted_data:
+                    # Notes directly extracted from audio
+                    result = extracted_data
             else:
                 # String transcript extracted from captions
                 print(f"[DEBUG] Transcript extracted. Length: {len(extracted_data)}")
