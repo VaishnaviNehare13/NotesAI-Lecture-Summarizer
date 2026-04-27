@@ -39,11 +39,6 @@ except LookupError:
 print("Loading models...")
 
 whisper_model = None
-if WHISPER_AVAILABLE:
-    try:
-        whisper_model = whisper.load_model("base")
-    except Exception as e:
-        print(f"Error loading whisper model: {e}")
 
 if TORCH_AVAILABLE:
     class SimpleModel(nn.Module):
