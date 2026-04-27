@@ -17,7 +17,7 @@ import json
 from datetime import datetime
 
 # Import from backend.utils
-from backend.utils import whisper_model, generate_notes_from_text
+from backend.utils import whisper_model, generate_notes_from_text, generate_notes_from_file
 
 # Add local bin directory to PATH for ffmpeg
 bin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin')
@@ -48,11 +48,7 @@ def init_db():
 # Initialize DB on startup
 init_db()
 
-def whisper_transcribe_from_youtube(url):
-    if whisper_model is None:
-        print("Whisper model not loaded.")
-        return None
-        
+def extract_notes_from_youtube_audio(url):
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             ydl_opts = {
@@ -71,12 +67,12 @@ def whisper_transcribe_from_youtube(url):
                 audio_file = os.path.join(tmpdir, f"{info['id']}.mp3")
                 
                 if os.path.exists(audio_file):
-                    result = whisper_model.transcribe(audio_file)
-                    return result["text"]
+                    result = generate_notes_from_file(audio_file)
+                    return result
                 else:
                     print(f"[ERROR] yt-dlp downloaded audio but file missing: {audio_file}")
     except Exception as e:
-        print(f"[ERROR] yt-dlp / whisper fallback failed: {e}")
+        print(f"[ERROR] yt-dlp / gemini fallback failed: {e}")
     return None
 
 def get_text_from_video(url):
@@ -125,9 +121,9 @@ def get_text_from_video(url):
         return text
     except Exception as e:
         print(f"[ERROR] youtube_transcript_api failed: {e}")
-        print("[DEBUG] Falling back to yt-dlp + whisper audio extraction...")
+        print("[DEBUG] Falling back to yt-dlp + gemini audio extraction...")
         
-        result = whisper_transcribe_from_youtube(url)
+        result = extract_notes_from_youtube_audio(url)
         if not result:
             raise Exception("YouTube extraction failed entirely. Video may be private or unavailable.")
         return result
@@ -281,15 +277,22 @@ def generate():
         print(f"[DEBUG] Received generate request for: {input_text}")
         
         if "youtube.com" in input_text or "youtu.be" in input_text:
-            transcription = get_text_from_video(input_text)
-            if not transcription:
+            extracted_data = get_text_from_video(input_text)
+            if not extracted_data:
                 raise Exception("No captions found")
+            
+            if isinstance(extracted_data, dict) and "summary" in extracted_data:
+                # Notes directly extracted from audio
+                result = extracted_data
+            else:
+                # String transcript extracted from captions
+                print(f"[DEBUG] Transcript extracted. Length: {len(extracted_data)}")
+                result = generate_notes_from_text(extracted_data)
         else:
             transcription = input_text
+            print(f"[DEBUG] Transcript extracted. Length: {len(transcription)}")
+            result = generate_notes_from_text(transcription)
             
-        print(f"[DEBUG] Transcript extracted. Length: {len(transcription)}")
-        
-        result = generate_notes_from_text(transcription)
         if "error" in result:
             raise Exception(result["error"])
             
@@ -315,9 +318,6 @@ def upload_video():
         if file.filename == '':
             return jsonify({"success": False, "error": "No selected file"}), 200
             
-        if whisper_model is None:
-            return jsonify({"success": False, "error": "Transcription model is offline on the server."}), 200
-            
         print(f"[DEBUG] Received upload video request: {file.filename}")
         
         # Save file explicitly to uploads directory
@@ -330,22 +330,17 @@ def upload_video():
         
         file.save(tmp_path)
             
-        # Transcribe handles chunking naturally with 30s sliding window
-        result = whisper_model.transcribe(tmp_path)
-        transcription = result.get("text", "")
+        # Extract notes using Gemini
+        notes_result = generate_notes_from_file(tmp_path)
         
         # Cleanup file after processing
         if os.path.exists(tmp_path):
-            os.remove(tmp_path)
+            try:
+                os.remove(tmp_path)
+            except:
+                pass
             tmp_path = None
             
-        print(f"[DEBUG] Transcript extracted. Length: {len(transcription)}")
-        
-        if not transcription.strip():
-            raise Exception("No speech detected")
-            
-        # Generate notes
-        notes_result = generate_notes_from_text(transcription)
         if "error" in notes_result:
             raise Exception(notes_result["error"])
             

@@ -250,8 +250,14 @@ def generate_notes_from_text(transcription):
         """ + transcription
         
         response = model.generate_content(prompt)
-        response_text = response.text.strip()
+        return _parse_gemini_json_response(response.text.strip())
         
+    except Exception as e:
+        print(f"[DEBUG] Gemini generation failed: {e}. Falling back to LSTM.")
+        return generate_notes_with_lstm(transcription)
+
+def _parse_gemini_json_response(response_text):
+    try:
         # Clean potential markdown formatting
         if response_text.startswith("```json"):
             response_text = response_text[7:]
@@ -292,7 +298,58 @@ def generate_notes_from_text(transcription):
             "key_points": key_points[:7],
             "conclusion": conclusion
         }
+    except Exception as e:
+        return {"error": f"Failed to parse AI response: {e}"}
+
+def generate_notes_from_file(file_path):
+    if not GEMINI_API_KEY:
+        return {"error": "Gemini API key is required for video/audio extraction."}
+        
+    try:
+        print(f"[DEBUG] Uploading file to Gemini: {file_path}")
+        uploaded_file = genai.upload_file(path=file_path)
+        
+        import time
+        if hasattr(uploaded_file, 'state'):
+            while uploaded_file.state.name == 'PROCESSING':
+                print('.', end='', flush=True)
+                time.sleep(2)
+                uploaded_file = genai.get_file(uploaded_file.name)
+            if uploaded_file.state.name == 'FAILED':
+                raise Exception("Gemini failed to process the media file.")
+                
+        print("\n[DEBUG] File ready. Prompting Gemini API...")
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = """
+        Analyze this audio/video.
+        Convert the spoken lecture content into concise academic study notes.
+        Remove filler words, fix grammar, and summarize the lecture content.
+        Extract concise bullet points. Avoid transcript dumping. Limit each array to 5-7 bullets of readable length.
+        Generate academically formatted notes.
+        
+        CRITICAL: For "important_concepts", extract ONLY domain-specific technical concepts or noun phrases relevant to the lecture topic (e.g., "Mutual Exclusion", "Deadlock", "Resource Allocation Graph"). Do NOT extract conversational words, verbs, or weak phrases like "means", "saying", "okay", or "example". Rank concepts by relevance, not raw frequency. Prefer noun phrases over single common words.
+
+        Return structured JSON with EXACTLY this format:
+        {
+          "summary": "overall summary string",
+          "key_learnings": ["bullet 1", "bullet 2"],
+          "important_concepts": ["technical concept 1", "technical concept 2"],
+          "key_points": ["bullet 1", "bullet 2"],
+          "conclusion": "overall conclusion string"
+        }
+        Respond ONLY with valid JSON. Do not include markdown code blocks like ```json ... ```. Just the raw JSON.
+        """
+        
+        response = model.generate_content([prompt, uploaded_file])
+        
+        try:
+            genai.delete_file(uploaded_file.name)
+        except Exception as cleanup_err:
+            print(f"[DEBUG] Failed to cleanup file from Gemini: {cleanup_err}")
+            
+        return _parse_gemini_json_response(response.text.strip())
         
     except Exception as e:
-        print(f"[DEBUG] Gemini generation failed: {e}. Falling back to LSTM.")
-        return generate_notes_with_lstm(transcription)
+        print(f"[DEBUG] Gemini file extraction failed: {e}")
+        return {"error": f"Failed to extract notes from video/audio: {e}"}
+
