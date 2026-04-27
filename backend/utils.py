@@ -227,7 +227,7 @@ def generate_notes_from_text(transcription):
         
     try:
         print("[DEBUG] Prompting Gemini API...")
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         prompt = """
         Convert this lecture transcript into concise academic study notes.
         Remove filler words, fix grammar, and summarize the lecture content.
@@ -319,7 +319,7 @@ def generate_notes_from_file(file_path):
                 raise Exception("Gemini failed to process the media file.")
                 
         print("\n[DEBUG] File ready. Prompting Gemini API...")
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         prompt = """
         Analyze this audio/video.
         Convert the spoken lecture content into concise academic study notes.
