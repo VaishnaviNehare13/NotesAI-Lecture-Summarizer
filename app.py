@@ -17,7 +17,7 @@ import json
 from datetime import datetime
 
 # Import from backend.utils
-from backend.utils import whisper_model, generate_notes_from_text, generate_notes_from_audio
+from backend.utils import whisper_model, generate_notes_from_text
 
 # Add local bin directory to PATH for ffmpeg
 bin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin')
@@ -49,42 +49,34 @@ def init_db():
 init_db()
 
 def whisper_transcribe_from_youtube(url):
+    if whisper_model is None:
+        print("Whisper model not loaded.")
+        return None
+        
     try:
-        ydl_opts = {
-            'quiet': True,
-            'noplaylist': True,
-            'extract_flat': False,
-            'cookiefile': None
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            
-            if WHISPER_AVAILABLE and whisper_model:
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    audio_opts = {
-                        'format': 'bestaudio/best',
-                        'outtmpl': os.path.join(tmpdir, '%(id)s.%(ext)s'),
-                        'postprocessors': [{
-                            'key': 'FFmpegExtractAudio',
-                            'preferredcodec': 'mp3',
-                            'preferredquality': '192',
-                        }],
-                        'quiet': True,
-                        'no_warnings': True
-                    }
-                    with yt_dlp.YoutubeDL(audio_opts) as ydl_audio:
-                        ydl_audio.download([url])
-                        audio_file = os.path.join(tmpdir, f"{info['id']}.mp3")
-                        if os.path.exists(audio_file):
-                            result = whisper_model.transcribe(audio_file)
-                            return result["text"]
-            
-            description = info.get('description', '')
-            if description and description.strip():
-                print("[DEBUG] Using YouTube description as fallback text.")
-                return description
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'outtmpl': os.path.join(tmpdir, '%(id)s.%(ext)s'),
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+                'quiet': True,
+                'no_warnings': True
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                audio_file = os.path.join(tmpdir, f"{info['id']}.mp3")
+                
+                if os.path.exists(audio_file):
+                    result = whisper_model.transcribe(audio_file)
+                    return result["text"]
+                else:
+                    print(f"[ERROR] yt-dlp downloaded audio but file missing: {audio_file}")
     except Exception as e:
-        print(f"[ERROR] yt-dlp / fallback failed: {e}")
+        print(f"[ERROR] yt-dlp / whisper fallback failed: {e}")
     return None
 
 def get_text_from_video(url):
@@ -172,7 +164,7 @@ def download_pdf():
         data = request.get_json()
         text_content = data.get("text_content", "")
         if not text_content:
-            return jsonify({"error": "No text content provided"}), 400
+            return jsonify({"success": False, "error": "No text content provided"}), 200
             
         pdf = FPDF()
         pdf.add_page()
@@ -192,14 +184,14 @@ def download_pdf():
     except Exception as e:
         import traceback
         print(traceback.format_exc())
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 200
 
 @app.route("/save_note", methods=["POST"])
 def save_note():
     try:
         data = request.get_json()
         if not data or 'title' not in data or 'data' not in data:
-            return jsonify({"success": False, "error": "Invalid note payload"}), 400
+            return jsonify({"success": False, "error": "Invalid note payload"}), 200
             
         title = data.get("title", "Untitled Note")
         note_data = data.get("data", {})
@@ -223,7 +215,7 @@ def save_note():
     except Exception as e:
         import traceback
         print(traceback.format_exc())
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 200
 
 @app.route("/library", methods=["GET"])
 def get_library():
@@ -252,7 +244,7 @@ def get_library():
     except Exception as e:
         import traceback
         print(traceback.format_exc())
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 200
 
 @app.route("/delete_note/<int:note_id>", methods=["DELETE"])
 def delete_note(note_id):
@@ -264,7 +256,7 @@ def delete_note(note_id):
         conn.close()
         return jsonify({"success": True})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 200
 
 @app.route("/delete_all_notes", methods=["DELETE"])
 def delete_all_notes():
@@ -276,14 +268,14 @@ def delete_all_notes():
         conn.close()
         return jsonify({"success": True})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 200
 
 @app.route("/generate", methods=["POST"])
 def generate():
     try:
         data = request.get_json()
         if not data or 'text' not in data:
-            return jsonify({"success": False, "error": "No text/url provided"}), 400
+            return jsonify({"success": False, "error": "No text/url provided"}), 200
             
         input_text = data.get("text", "")
         print(f"[DEBUG] Received generate request for: {input_text}")
@@ -310,18 +302,21 @@ def generate():
             "success": False,
             "error": str(e),
             "details": traceback.format_exc()
-        }), 500
+        }), 200
 
 @app.route("/upload_video", methods=["POST"])
 def upload_video():
     tmp_path = None
     try:
         if 'file' not in request.files:
-            return jsonify({"success": False, "error": "No file uploaded"}), 400
+            return jsonify({"success": False, "error": "No file uploaded"}), 200
         
         file = request.files['file']
         if file.filename == '':
-            return jsonify({"success": False, "error": "No selected file"}), 400
+            return jsonify({"success": False, "error": "No selected file"}), 200
+            
+        if whisper_model is None:
+            return jsonify({"success": False, "error": "Transcription model is offline on the server."}), 200
             
         print(f"[DEBUG] Received upload video request: {file.filename}")
         
@@ -335,50 +330,27 @@ def upload_video():
         
         file.save(tmp_path)
             
-        if not WHISPER_AVAILABLE or whisper_model is None:
-            import ffmpeg
-            audio_path = os.path.join("uploads", f"audio_{filename}.mp3")
-            try:
-                print(f"[DEBUG] Extracting audio using ffmpeg-python from {tmp_path}")
-                ffmpeg.input(tmp_path).output(audio_path, acodec='libmp3lame', ab='128k').run(quiet=True, overwrite_output=True)
-                
-                notes_result = generate_notes_from_audio(audio_path)
-                
-                if os.path.exists(audio_path):
-                    os.remove(audio_path)
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
-                    
-                if "error" in notes_result:
-                    raise Exception(notes_result["error"])
-                    
-                print("[DEBUG] Audio summary generated via Gemini.")
-                return jsonify({"success": True, "summary": notes_result})
-            except Exception as e:
-                print(f"FFmpeg or Gemini Audio error: {e}")
-                raise e
-        else:
-            # Transcribe handles chunking naturally with 30s sliding window
-            result = whisper_model.transcribe(tmp_path)
-            transcription = result.get("text", "")
+        # Transcribe handles chunking naturally with 30s sliding window
+        result = whisper_model.transcribe(tmp_path)
+        transcription = result.get("text", "")
+        
+        # Cleanup file after processing
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+            tmp_path = None
             
-            # Cleanup file after processing
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-                tmp_path = None
-                
-            print(f"[DEBUG] Transcript extracted. Length: {len(transcription)}")
+        print(f"[DEBUG] Transcript extracted. Length: {len(transcription)}")
+        
+        if not transcription.strip():
+            raise Exception("No speech detected")
             
-            if not transcription.strip():
-                raise Exception("No speech detected")
-                
-            # Generate notes
-            notes_result = generate_notes_from_text(transcription)
-            if "error" in notes_result:
-                raise Exception(notes_result["error"])
-                
-            print("[DEBUG] Summary generated successfully.")
-            return jsonify({"success": True, "summary": notes_result})
+        # Generate notes
+        notes_result = generate_notes_from_text(transcription)
+        if "error" in notes_result:
+            raise Exception(notes_result["error"])
+            
+        print("[DEBUG] Summary generated successfully.")
+        return jsonify({"success": True, "summary": notes_result})
         
     except Exception as e:
         if tmp_path and os.path.exists(tmp_path):
@@ -389,7 +361,7 @@ def upload_video():
             "success": False,
             "error": str(e),
             "details": traceback.format_exc()
-        }), 500
+        }), 200
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

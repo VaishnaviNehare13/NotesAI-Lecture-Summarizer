@@ -357,14 +357,25 @@ async function handleGenerate(e) {
                 };
                 
                 xhr.onload = function() {
+                    let parsedJson = null;
+                    try {
+                        parsedJson = JSON.parse(xhr.responseText);
+                    } catch (err) {
+                        // ignore
+                    }
+
                     if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            resolve(JSON.parse(xhr.responseText));
-                        } catch (err) {
+                        if (parsedJson) {
+                            resolve(parsedJson);
+                        } else {
                             reject(new Error("Server returned invalid JSON."));
                         }
                     } else {
-                        reject(new Error("Server error during upload: " + xhr.statusText));
+                        if (parsedJson && parsedJson.error) {
+                            reject(new Error(parsedJson.error));
+                        } else {
+                            reject(new Error("Server error during upload: " + xhr.statusText));
+                        }
                     }
                 };
                 
@@ -397,7 +408,9 @@ async function handleGenerate(e) {
         if (loadingState) loadingState.classList.add('hidden');
 
         if (!data.success) {
-            alert("Error: " + (data.error || "Generation failed"));
+            setTimeout(() => {
+                showToast("Error: " + (data.error || "Generation failed"), "error");
+            }, 100);
             if(emptyState) emptyState.classList.remove('hidden');
             btn.innerText = "Generate Smart Notes 🚀";
             btn.disabled = false;
@@ -442,7 +455,9 @@ async function handleGenerate(e) {
     } catch (e) {
         if(loadingState) loadingState.classList.add('hidden');
         if(emptyState) emptyState.classList.remove('hidden');
-        alert("Extraction Error: " + e.message);
+        setTimeout(() => {
+            showToast("Extraction Error: " + e.message, "error");
+        }, 100);
     }
 
     btn.innerText = "Generate Smart Notes 🚀";
