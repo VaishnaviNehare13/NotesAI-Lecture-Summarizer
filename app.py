@@ -108,7 +108,7 @@ def get_text_from_video(url):
     print(f"[DEBUG] Extracted Video ID: {video_id}")
         
     try:
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        transcript_list = YouTubeTranscriptApi().list(video_id)
         # Try to fetch English, but fallback to any available translated
         try:
             transcript = transcript_list.find_transcript(['en']).fetch()
@@ -117,7 +117,7 @@ def get_text_from_video(url):
             first_available = list(transcript_list)[0]
             transcript = first_available.translate('en').fetch()
             
-        text = " ".join([t['text'] for t in transcript])
+        text = " ".join([t.text if hasattr(t, 'text') else t.get('text', '') for t in transcript])
         print("[DEBUG] youtube_transcript_api successful.")
         return text
     except Exception as e:
